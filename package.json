@@ -1,0 +1,62 @@
+{
+  "name": "@realnaka/edgex-cli",
+  "version": "0.1.0",
+  "description": "CLI for EdgeX perpetual and equity contract trading",
+  "type": "module",
+  "bin": {
+    "edgex": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "typecheck": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/realnaka/edgex-cli.git"
+  },
+  "homepage": "https://github.com/realnaka/edgex-cli#readme",
+  "bugs": {
+    "url": "https://github.com/realnaka/edgex-cli/issues"
+  },
+  "keywords": [
+    "edgex",
+    "cli",
+    "perpetual",
+    "trading",
+    "defi",
+    "crypto",
+    "starkex",
+    "websocket"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.0.1",
+    "@noble/hashes": "^2.0.1",
+    "@scure/starknet": "^2.0.0",
+    "chalk": "^5.4.1",
+    "cli-table3": "^0.6.5",
+    "commander": "^13.1.0",
+    "enquirer": "^2.4.1",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

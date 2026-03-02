@@ -1,0 +1,97 @@
+import { Command } from 'commander';
+import chalk from 'chalk';
+import { saveConfig, loadConfig, getConfigPath, isTestnet } from '../core/config.js';
+import { handleError } from '../utils/errors.js';
+
+function printSecurityWarning(): void {
+  const border = chalk.yellow('─'.repeat(60));
+  console.log(`\n${border}`);
+  console.log(chalk.yellow.bold('  ⚠  SECURITY NOTICE'));
+  console.log(border);
+  console.log(chalk.yellow('  • Use a SUB-ACCOUNT key, never your main account private key'));
+  console.log(chalk.yellow('  • Set withdrawal whitelist on your main account'));
+  console.log(chalk.yellow('  • The private key is stored in plaintext at:'));
+  console.log(chalk.yellow(`    ${getConfigPath()}`));
+  console.log(chalk.yellow('  • File permissions are set to 600 (owner read/write only)'));
+  console.log(`${border}\n`);
+}
+
+export function registerSetupCommand(program: Command): void {
+  program
+    .command('setup')
+    .description('Configure EdgeX CLI credentials')
+    .option('--account-id <id>', 'EdgeX Account ID')
+    .option('--private-key <key>', 'StarkEx Private Key')
+    .option('--base-url <url>', 'API base URL')
+    .option('--ws-url <url>', 'WebSocket URL')
+    .action(async (opts: {
+      accountId?: string;
+      privateKey?: string;
+      baseUrl?: string;
+      wsUrl?: string;
+    }) => {
+      try {
+        const network = isTestnet() ? 'testnet' : 'mainnet';
+
+        if (opts.accountId || opts.privateKey || opts.baseUrl || opts.wsUrl) {
+          if (opts.privateKey) printSecurityWarning();
+
+          const config: Record<string, string> = {};
+          if (opts.accountId) config.accountId = opts.accountId;
+          if (opts.privateKey) config.starkPrivateKey = opts.privateKey;
+          if (opts.baseUrl) config.baseUrl = opts.baseUrl;
+          if (opts.wsUrl) config.wsUrl = opts.wsUrl;
+
+          await saveConfig(config);
+          console.log(chalk.green(`[${network}] Configuration saved to ${getConfigPath()}`));
+          return;
+        }
+
+        const { default: Enquirer } = await import('enquirer');
+        const enquirer = new Enquirer();
+        const current = await loadConfig();
+
+        const networkLabel = isTestnet()
+          ? chalk.yellow('[TESTNET]')
+          : chalk.green('[MAINNET]');
+        const siteUrl = isTestnet()
+          ? 'https://testnet.edgex.exchange'
+          : 'https://pro.edgex.exchange';
+
+        console.log(chalk.bold(`\nEdgeX CLI Setup ${networkLabel}\n`));
+        printSecurityWarning();
+        console.log(chalk.gray(`Export your Account ID and Private Key from the EdgeX web interface.`));
+        console.log(chalk.gray(`See: ${siteUrl}\n`));
+
+        const answers = (await enquirer.prompt([
+          {
+            type: 'input',
+            name: 'accountId',
+            message: 'Account ID',
+            initial: current.accountId || '',
+          },
+          {
+            type: 'password',
+            name: 'starkPrivateKey',
+            message: 'StarkEx Private Key',
+          },
+          {
+            type: 'input',
+            name: 'baseUrl',
+            message: 'API Base URL',
+            initial: current.baseUrl,
+          },
+        ])) as { accountId: string; starkPrivateKey: string; baseUrl: string };
+
+        const config: Record<string, string> = {};
+        if (answers.accountId) config.accountId = answers.accountId;
+        if (answers.starkPrivateKey) config.starkPrivateKey = answers.starkPrivateKey;
+        if (answers.baseUrl) config.baseUrl = answers.baseUrl;
+
+        await saveConfig(config);
+        console.log(chalk.green(`\n[${network}] Configuration saved to ${getConfigPath()}`));
+      } catch (err) {
+        handleError(err);
+      }
+    });
+}
