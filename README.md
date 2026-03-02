@@ -163,8 +163,8 @@ Market sell 0.1 ETH.
 ```
 
 ```text
-Set SOL leverage to 5x.
-# 中文: 帮我把 SOL 的杠杆设置为 5 倍。
+What's the max BTC position I can open right now?
+# 中文: 我现在最多能开多大的 BTC 仓位？
 ```
 
 ```text
