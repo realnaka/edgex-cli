@@ -233,9 +233,9 @@ export function registerOrderCommand(program: Command): void {
         if (typeUpper === 'MARKET') {
           const oracle = parseFloat(oraclePrice || '0');
           if (sideUpper === 'BUY') {
-            orderPrice = String(Math.ceil(oracle * 1.05 * 100) / 100);
+            orderPrice = String(Math.ceil(oracle * 1.1 * 100) / 100);
           } else {
-            orderPrice = String(Math.floor(oracle * 0.95 * 100) / 100);
+            orderPrice = String(Math.floor(oracle * 0.9 * 100) / 100);
           }
         } else {
           orderPrice = opts.price!;
