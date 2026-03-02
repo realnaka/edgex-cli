@@ -227,10 +227,24 @@ export function registerOrderCommand(program: Command): void {
           starkPrivateKey,
         );
 
+        // For market orders, use aggressive limit price to guarantee fill
+        // (StarkEx has no native market orders — market = IOC limit at extreme price)
+        let orderPrice: string;
+        if (typeUpper === 'MARKET') {
+          const oracle = parseFloat(oraclePrice || '0');
+          if (sideUpper === 'BUY') {
+            orderPrice = String(Math.ceil(oracle * 1.05 * 100) / 100);
+          } else {
+            orderPrice = String(Math.floor(oracle * 0.95 * 100) / 100);
+          }
+        } else {
+          orderPrice = opts.price!;
+        }
+
         // Build order body
         const orderBody: Record<string, unknown> = {
           contractId: contract.contractId,
-          price: typeUpper === 'MARKET' ? '0' : opts.price,
+          price: orderPrice,
           size,
           type: typeUpper,
           side: sideUpper,
@@ -268,7 +282,6 @@ export function registerOrderCommand(program: Command): void {
         }
 
         if (!opts.yes) {
-          const priceDisplay = typeUpper === 'MARKET' ? chalk.red('MARKET') : opts.price!;
           const sideColor = sideUpper === 'BUY' ? chalk.green(sideUpper) : chalk.red(sideUpper);
           const typeColor = typeUpper === 'MARKET' ? chalk.red(typeUpper) : chalk.cyan(typeUpper);
 
@@ -277,7 +290,11 @@ export function registerOrderCommand(program: Command): void {
           console.error(`  Side:    ${sideColor}`);
           console.error(`  Type:    ${typeColor}`);
           console.error(`  Size:    ${size}`);
-          console.error(`  Price:   ${priceDisplay}`);
+          if (typeUpper === 'MARKET') {
+            console.error(`  Price:   ${chalk.red('MARKET')} (limit ${orderPrice})`);
+          } else {
+            console.error(`  Price:   ${orderPrice}`);
+          }
           if (opts.tp) console.error(`  TP:      ${opts.tp}`);
           if (opts.sl) console.error(`  SL:      ${opts.sl}`);
           console.error('');
