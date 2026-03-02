@@ -45,11 +45,17 @@ export class EdgexClient {
       if (qs) url += `?${qs}`;
     }
 
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      ...(method === 'POST' && params ? { body: JSON.stringify(params) } : {}),
-    });
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        ...(method === 'POST' && params ? { body: JSON.stringify(params) } : {}),
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new ApiError('NETWORK', `Failed to connect to ${this.baseUrl} — ${msg}`);
+    }
 
     if (!res.ok) {
       throw new ApiError(String(res.status), `HTTP ${res.status}: ${res.statusText}`);
@@ -99,7 +105,13 @@ export class EdgexClient {
       init.body = JSON.stringify(params);
     }
 
-    const res = await fetch(url, init);
+    let res: Response;
+    try {
+      res = await fetch(url, init);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new ApiError('NETWORK', `Failed to connect to ${this.baseUrl} — ${msg}`);
+    }
 
     if (!res.ok) {
       const text = await res.text().catch(() => '');

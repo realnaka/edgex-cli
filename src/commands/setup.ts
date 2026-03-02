@@ -75,18 +75,11 @@ export function registerSetupCommand(program: Command): void {
             name: 'starkPrivateKey',
             message: 'StarkEx Private Key',
           },
-          {
-            type: 'input',
-            name: 'baseUrl',
-            message: 'API Base URL',
-            initial: current.baseUrl,
-          },
-        ])) as { accountId: string; starkPrivateKey: string; baseUrl: string };
+        ])) as { accountId: string; starkPrivateKey: string };
 
         const config: Record<string, string> = {};
         if (answers.accountId) config.accountId = answers.accountId;
         if (answers.starkPrivateKey) config.starkPrivateKey = answers.starkPrivateKey;
-        if (answers.baseUrl) config.baseUrl = answers.baseUrl;
 
         await saveConfig(config);
         console.log(chalk.green(`\n[${network}] Configuration saved to ${getConfigPath()}`));
