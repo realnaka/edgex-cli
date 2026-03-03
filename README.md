@@ -12,6 +12,7 @@ Built for traders and AI agents. All commands support `--json` output for progra
 - **WebSocket streaming** — real-time ticker, depth, kline, trades, account updates (NDJSON)
 - **Testnet support** — `--testnet` flag for safe testing
 - **Security** — sub-account warnings, chmod 600, order confirmation prompts
+- **AI agent skill** — one-command install for Cursor / Claude Code integration
 
 ## Install
 
@@ -302,6 +303,30 @@ Flag any assets where |funding rate| > 0.01% as potential funding arbitrage oppo
 Explain briefly how a funding rate trade works.
 ```
 
+## AI Agent Integration
+
+Install skill files so AI agents (Cursor, Claude Code, OpenClaw) understand EdgeX CLI commands, trading rules, and workflows:
+
+```bash
+edgex install-skill
+```
+
+This copies SKILL.md and reference docs to `~/.cursor/skills/edgex-cli/` and `~/.claude/skills/edgex-cli/`. After install, AI agents can:
+
+- Automatically check balances before placing orders
+- Warn about stock contract restrictions during market closure
+- Parse JSON output with correct field paths
+- Follow safe multi-step trading workflows
+
+Options:
+
+```bash
+edgex install-skill --list          # Show targets and install status
+edgex install-skill --cursor        # Cursor only (project-level)
+edgex install-skill --cursor-user   # Cursor only (user-level)
+edgex install-skill --claude        # Claude Code only
+```
+
 ## Testnet
 
 Add `--testnet` to any command to use the testnet environment:
@@ -356,6 +381,7 @@ src/
     account.ts          # edgex account (balances/positions/orders/leverage)
     order.ts            # edgex order (create/cancel/status/max-size)
     stream.ts           # edgex stream (WebSocket, NDJSON output)
+    install-skill.ts    # edgex install-skill (AI agent setup)
   utils/
     output.ts           # JSON / table output formatting
     errors.ts           # Error types and handling

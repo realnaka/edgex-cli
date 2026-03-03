@@ -2,7 +2,7 @@ src/
 tsconfig.json
 .gitignore
 .github/
-openclaw/
+scripts/
 *.tsbuildinfo
 .DS_Store
 .env

@@ -7,6 +7,7 @@ import { registerSetupCommand } from './commands/setup.js';
 import { registerAccountCommand } from './commands/account.js';
 import { registerOrderCommand } from './commands/order.js';
 import { registerStreamCommand } from './commands/stream.js';
+import { registerInstallSkillCommand } from './commands/install-skill.js';
 
 const program = new Command();
 
@@ -30,5 +31,6 @@ registerMarketCommand(program);
 registerAccountCommand(program);
 registerOrderCommand(program);
 registerStreamCommand(program);
+registerInstallSkillCommand(program);
 
 program.parse();

@@ -1,6 +1,6 @@
 {
   "name": "@realnaka/edgex-cli",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "CLI for EdgeX perpetual contract trading",
   "type": "module",
   "bin": {
@@ -10,6 +10,7 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
+    "openclaw",
     "README.md",
     "LICENSE"
   ],
