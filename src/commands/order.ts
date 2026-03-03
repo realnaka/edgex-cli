@@ -396,13 +396,18 @@ export function registerOrderCommand(program: Command): void {
           throw new EdgexError(`No open position for ${contract.contractName}. TP/SL can only be set on existing positions.`);
         }
 
-        const posSide = String(position.side ?? '').toUpperCase();
-        const posSize = opts.size || String(position.size ?? position.openSize ?? '0');
-        const closeSide: 'BUY' | 'SELL' = posSide === 'LONG' || posSide === 'BUY' ? 'SELL' : 'BUY';
+        // Detect position side from term stats (positionList has no explicit "side" field)
+        const longStat = position.longTermStat as Record<string, string> | undefined;
+        const shortStat = position.shortTermStat as Record<string, string> | undefined;
+        const netLong = parseFloat(longStat?.cumOpenSize ?? '0') + parseFloat(longStat?.cumCloseSize ?? '0');
+        const netShort = parseFloat(shortStat?.cumOpenSize ?? '0') + parseFloat(shortStat?.cumCloseSize ?? '0');
+        const isLong = netLong > netShort;
+
+        const posSize = opts.size || String(position.openSize ?? '0');
+        const closeSide: 'BUY' | 'SELL' = isLong ? 'SELL' : 'BUY';
 
         if (!opts.yes) {
-          const sideColor = posSide.includes('LONG') || posSide === 'BUY'
-            ? chalk.green('LONG') : chalk.red('SHORT');
+          const sideColor = isLong ? chalk.green('LONG') : chalk.red('SHORT');
 
           console.error(chalk.bold('\nPosition TP/SL Preview:\n'));
           console.error(`  Symbol:    ${contract.contractName}`);
