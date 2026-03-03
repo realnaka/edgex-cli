@@ -361,4 +361,156 @@ export function registerOrderCommand(program: Command): void {
         });
       } catch (err) { handleError(err); }
     });
+
+  // ─── set-tpsl ───
+
+  order
+    .command('set-tpsl <symbol>')
+    .description('Set take-profit / stop-loss on an existing position')
+    .option('--tp <price>', 'Take profit trigger price')
+    .option('--sl <price>', 'Stop loss trigger price')
+    .option('--size <size>', 'Size (default: full position)')
+    .option('-y, --yes', 'Skip confirmation prompt')
+    .action(async (
+      symbol: string,
+      opts: { tp?: string; sl?: string; size?: string; yes?: boolean },
+      cmd: Command,
+    ) => {
+      try {
+        await init();
+        const fmt = getFormat(cmd);
+
+        if (!opts.tp && !opts.sl) {
+          throw new EdgexError('At least one of --tp or --sl is required');
+        }
+
+        const contract = resolveSymbol(contracts, symbol);
+        if (!contract) throw new EdgexError(`Unknown symbol: ${symbol}`);
+
+        const accountData = await client.getAccountAsset();
+        const raw = accountData as unknown as Record<string, unknown>;
+        const positions = (raw.positionList ?? raw.positions ?? []) as Record<string, unknown>[];
+        const position = positions.find(p => String(p.contractId) === contract.contractId);
+
+        if (!position) {
+          throw new EdgexError(`No open position for ${contract.contractName}. TP/SL can only be set on existing positions.`);
+        }
+
+        const posSide = String(position.side ?? '').toUpperCase();
+        const posSize = opts.size || String(position.size ?? position.openSize ?? '0');
+        const closeSide: 'BUY' | 'SELL' = posSide === 'LONG' || posSide === 'BUY' ? 'SELL' : 'BUY';
+
+        if (!opts.yes) {
+          const sideColor = posSide.includes('LONG') || posSide === 'BUY'
+            ? chalk.green('LONG') : chalk.red('SHORT');
+
+          console.error(chalk.bold('\nPosition TP/SL Preview:\n'));
+          console.error(`  Symbol:    ${contract.contractName}`);
+          console.error(`  Position:  ${sideColor} × ${posSize}`);
+          if (opts.tp) console.error(`  TP:        ${chalk.green(opts.tp)}`);
+          if (opts.sl) console.error(`  SL:        ${chalk.red(opts.sl)}`);
+          console.error('');
+
+          const confirmed = await confirmOrder(chalk.bold('  Confirm? [y/N] '));
+          if (!confirmed) {
+            console.error(chalk.yellow('Cancelled.'));
+            return;
+          }
+        }
+
+        const l2Meta = getL2Meta(contract);
+        const results: Record<string, unknown>[] = [];
+
+        if (opts.tp) {
+          const tpL2 = computeL2OrderFields(
+            {
+              side: closeSide,
+              type: 'MARKET',
+              size: posSize,
+              oraclePrice: closeSide === 'BUY' ? opts.tp : undefined,
+              accountId: client.currentAccountId!,
+            },
+            l2Meta,
+            starkPrivateKey,
+          );
+          const tpBody: Record<string, unknown> = {
+            contractId: contract.contractId,
+            side: closeSide,
+            type: 'TAKE_PROFIT_MARKET',
+            size: posSize,
+            price: '0',
+            triggerPrice: opts.tp,
+            triggerPriceType: 'INDEX_PRICE',
+            timeInForce: 'IMMEDIATE_OR_CANCEL',
+            reduceOnly: true,
+            isPositionTpsl: true,
+            isSetOpenTp: false,
+            isSetOpenSl: false,
+            clientOrderId: tpL2.clientOrderId,
+            expireTime: tpL2.expireTime,
+            l2Nonce: tpL2.l2Nonce,
+            l2Value: tpL2.l2Value,
+            l2Size: tpL2.l2Size,
+            l2LimitFee: tpL2.l2LimitFee,
+            l2ExpireTime: tpL2.l2ExpireTime,
+            l2Signature: tpL2.l2Signature,
+          };
+          const tpResult = await client.createOrder(tpBody);
+          results.push({ type: 'TP', ...(tpResult as Record<string, unknown>) });
+        }
+
+        if (opts.sl) {
+          const slL2 = computeL2OrderFields(
+            {
+              side: closeSide,
+              type: 'MARKET',
+              size: posSize,
+              oraclePrice: closeSide === 'BUY' ? opts.sl : undefined,
+              accountId: client.currentAccountId!,
+            },
+            l2Meta,
+            starkPrivateKey,
+          );
+          const slBody: Record<string, unknown> = {
+            contractId: contract.contractId,
+            side: closeSide,
+            type: 'STOP_MARKET',
+            size: posSize,
+            price: '0',
+            triggerPrice: opts.sl,
+            triggerPriceType: 'INDEX_PRICE',
+            timeInForce: 'IMMEDIATE_OR_CANCEL',
+            reduceOnly: true,
+            isPositionTpsl: true,
+            isSetOpenTp: false,
+            isSetOpenSl: false,
+            clientOrderId: slL2.clientOrderId,
+            expireTime: slL2.expireTime,
+            l2Nonce: slL2.l2Nonce,
+            l2Value: slL2.l2Value,
+            l2Size: slL2.l2Size,
+            l2LimitFee: slL2.l2LimitFee,
+            l2ExpireTime: slL2.l2ExpireTime,
+            l2Signature: slL2.l2Signature,
+          };
+          const slResult = await client.createOrder(slBody);
+          results.push({ type: 'SL', ...(slResult as Record<string, unknown>) });
+        }
+
+        output(fmt, results, () => {
+          console.log(chalk.green('TP/SL set successfully\n'));
+          for (const r of results) {
+            printKeyValue([
+              ['Type', String(r.type ?? '')],
+              ['Order ID', String(r.orderId ?? '')],
+              ['Symbol', contract.contractName],
+              ['Side', closeSide],
+              ['Size', posSize],
+              ['Trigger', String(r.type === 'TP' ? opts.tp : opts.sl)],
+            ]);
+            console.log('');
+          }
+        });
+      } catch (err) { handleError(err); }
+    });
 }
