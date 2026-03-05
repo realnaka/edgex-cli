@@ -1,6 +1,6 @@
 ---
 name: edgex-cli
-description: Trade perpetual and equity contracts on EdgeX exchange via CLI. Query market data (price, depth, funding, kline, long/short ratio), manage accounts (balance, positions, leverage), place/cancel orders with TP/SL, and stream real-time WebSocket data. Supports 290+ contracts including crypto (BTC, ETH, SOL) and US equities (TSLA, AAPL, NVDA). Use when the user wants to trade on EdgeX, check EdgeX market data, manage EdgeX positions, or interact with EdgeX exchange programmatically.
+description: Trade perpetual and equity contracts on EdgeX exchange via CLI. Query market data (price, depth, funding, kline, long/short ratio), manage accounts (balance, positions, leverage), place/cancel orders with TP/SL, and stream real-time WebSocket data. Supports 290+ contracts including crypto (BTC, ETH, SOL) and US equities (TSLA, AAPL, NVDA). Use this skill whenever the user mentions EdgeX, wants to check crypto or stock prices on EdgeX, place trades, view positions or balances, analyze funding rates, monitor order books, or do any kind of market analysis using EdgeX data — even if they don't explicitly say "EdgeX CLI". Also trigger for requests like "check BTC price", "open a long on SOL", "what's my PnL", "scan funding rates", "close my positions", or "show market depth", when the context involves EdgeX.
 ---
 
 # EdgeX CLI
@@ -59,15 +59,18 @@ edgex stream account                         # Account/order updates (NDJSON, re
 
 ## Agent Rules
 
-- ALWAYS use `--json` flag for programmatic parsing
-- ALWAYS check `account balances` and `order max-size` before placing orders
-- ALWAYS present order parameters to the user and get explicit confirmation before using `-y`
-- NEVER use `-y` without the user's explicit approval
-- For market orders, ALWAYS warn the user about slippage risk
-- All numeric values are returned as **strings** — use `parseFloat()` to parse
+**Output parsing:** Use `--json` on every command. Without it, the CLI outputs human-readable tables that are unreliable to parse programmatically. The flag works in either position: `edgex --json market ticker BTC` and `edgex market ticker BTC --json` are equivalent.
+
+**Pre-trade safety:** Check `account balances` and `order max-size` before placing any order. Skipping these risks rejection (insufficient margin) or placing an order larger than the account can support — both waste the user's time and erode trust.
+
+**User confirmation:** Present order parameters (symbol, side, type, size, price, TP/SL) and wait for explicit confirmation before using `-y`. Trading involves real money — an accidental order can cause immediate financial loss. Never auto-confirm on the user's behalf.
+
+**Market order warning:** Market orders execute at whatever price is available, and thin order books can cause significant slippage. Warn the user about this before proceeding — especially for large sizes or low-liquidity contracts.
+
+**Data format notes:**
+- All numeric values are returned as **strings** — parse with `parseFloat()`
 - Funding rate is a decimal: `"0.0001"` means 0.01%
 - Timestamps are Unix milliseconds as strings
-- `--json` flag works both before and after the subcommand: `edgex --json market ticker BTC` and `edgex market ticker BTC --json` are equivalent
 
 ## Core Workflows
 
